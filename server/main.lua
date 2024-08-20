@@ -15,5 +15,3 @@ end)
 RegisterNetEvent("sr_illegal:removeitem", function(data)
 	removeItem(source, data.item, data.value)
 end)
-
-lib.versionCheck('ahlulmukh/sr_illegal')

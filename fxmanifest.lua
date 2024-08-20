@@ -19,6 +19,7 @@ shared_scripts {
 -- Server Script
 server_scripts {
 	'server/main.lua',
+	'server/version.lua',
 	'bridge/server/**.lua',
 }
 
