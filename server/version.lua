@@ -1,40 +1,59 @@
-local function versionCheck()
-    local repository = "ahlulmukh/sr_illegal"
-    local repositorylink = ("https://github.com/%s"):format(repository)
-    local resource = GetInvokingResource() or GetCurrentResourceName()
-    local currentVersion = GetResourceMetadata(resource, 'version', 0)
-    if currentVersion then
-        currentVersion = currentVersion:match('%d%.%d+%.%d+')
-    end
-    if not currentVersion then
-        return print(("^1Unable to determine current resource version for '%s' ^0"):format(
-            resource))
-    end
-    SetTimeout(2500, function()
-        PerformHttpRequest(('https://raw.githubusercontent.com/%s/main/fxmanifest.lua'):format(repository),
-            function(status, response)
-                if status ~= 200 then return end
-                local latestVersion = response:match("%sversion \"(.-)\"")
-                if latestVersion == currentVersion then
-                    return print(('[INFO] ^2%s^0 is up to date.\r\n(current version: ^2%s.^0)')
-                        :format(resource, currentVersion))
-                end
-                local cv = { string.strsplit('.', currentVersion) }
-                local lv = { string.strsplit('.', latestVersion) }
-                for i = 1, #cv do
-                    local current, minimum = tonumber(cv[i]), tonumber(lv[i])
+local curVersion = GetResourceMetadata(GetCurrentResourceName(), "version")
+local resourceName = "sr_illegal"
 
-                    if current ~= minimum then
-                        if current < minimum then
-                            return print(('^3An update is available for %s.^0\r\ncurrent version: ^3%s.^0\r\nlatest version: ^2%s.^0')
-                                :format(resource, currentVersion, latestVersion))
-                        else
-                            break
-                        end
-                    end
-                end
-            end, 'GET')
+CreateThread(function()
+    if GetCurrentResourceName() ~= "sr_illegal" then
+        resourceName = "sr_illegal (" .. GetCurrentResourceName() .. ")"
+    end
+end)
+
+CreateThread(function()
+    while true do
+        PerformHttpRequest("https://api.github.com/repos/ahlulmukh/sr_illegal/releases/latest", CheckVersion,
+            "GET")
+        Wait(3600000)
+    end
+end)
+
+CheckVersion = function(err, responseText, headers)
+    local repoVersion, repoURL, repoBody = GetRepoInformations()
+
+    CreateThread(function()
+        if curVersion ~= repoVersion then
+            Wait(4000)
+            print("^0[^3WARNING^0] " .. resourceName .. " is ^1NOT ^0up to date!")
+            print("^0[^3WARNING^0] Your Version: ^2" .. curVersion .. "^0")
+            print("^0[^3WARNING^0] Latest Version: ^2" .. repoVersion .. "^0")
+            print("^0[^3WARNING^0] Get the latest Version from: ^2" .. repoURL .. "^0")
+            print("^0[^3WARNING^0] Changelog:^0")
+            print("^1" .. repoBody .. "^0")
+        else
+            Wait(4000)
+            print("^0[^2INFO^0] " .. resourceName .. " is up to date! (^2" .. curVersion .. "^0)")
+        end
     end)
 end
 
-CreateThread(versionCheck)
+GetRepoInformations = function()
+    local repoVersion, repoURL, repoBody = nil, nil, nil
+
+    PerformHttpRequest("https://api.github.com/repos/ahlulmukh/sr_illegal/releases/latest",
+        function(err, response, headers)
+            if err == 200 then
+                local data = json.decode(response)
+
+                repoVersion = data.tag_name
+                repoURL = data.html_url
+                repoBody = data.body
+            else
+                repoVersion = curVersion
+                repoURL = "https://github.com/ahlulmukh/sr_illegal"
+            end
+        end, "GET")
+
+    repeat
+        Wait(50)
+    until (repoVersion and repoURL and repoBody)
+
+    return repoVersion, repoURL, repoBody
+end

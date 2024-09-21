@@ -5,6 +5,7 @@ lua54 'yes'
 
 
 -- Resource Info
+name "sr_illegal"
 version '1.0.0'
 author 'Bagah Project'
 description 'Penyabut ganja rework'
